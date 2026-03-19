@@ -22,6 +22,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
 
   // DATA
   String category = "Garbage";
+  String? _selectedDistrict = 'Mohali'; // Add district picker
   File? image;
   String? locationText;
 
@@ -29,6 +30,13 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
   bool sharePhone = false;
+
+  final List<String> districts = [
+    'Mohali',
+    'Chandigarh',
+    'Patiala',
+    'Ludhiana'
+  ];
 
   final List<_IssueCategory> categories = const [
     _IssueCategory("Garbage", Icons.delete, Colors.green),
@@ -105,6 +113,27 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
   // SUBMIT
   // ─────────────────────────────
   Future<void> submit() async {
+    // VALIDATION
+    if (descriptionController.text.trim().length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Description must be at least 10 characters")),
+      );
+      return;
+    }
+    if (locationText == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please get your location")),
+      );
+      return;
+    }
+    if (nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter your name")),
+      );
+      return;
+    }
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -114,6 +143,14 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
         imageUrl = await StorageService.uploadImage(image!);
       }
 
+      // Extract lat/lng from locationText or default
+      final locParts = locationText!.split(', ');
+      final lat = double.tryParse(locParts[0]) ?? 0.0;
+      final lng =
+          double.tryParse(locParts.length > 1 ? locParts[1] : '0') ?? 0.0;
+      final district =
+          _selectedDistrict ?? 'Mohali'; // Default, add picker below
+
       await FirestoreService.submitReport(
         userId: user.uid,
         name: nameController.text.trim(),
@@ -121,20 +158,23 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
         sharePhone: sharePhone,
         category: category,
         description: descriptionController.text.trim(),
-        location: locationText ?? "Not provided",
+        location: locationText!,
+        lat: lat,
+        lng: lng,
+        district: district,
         imageUrl: imageUrl,
       );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Report submitted successfully")),
+        const SnackBar(content: Text("✅ Report submitted successfully!")),
       );
 
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed: $e")),
+        SnackBar(content: Text("❌ Failed: $e")),
       );
     }
   }
@@ -255,7 +295,22 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
         children: [
           TextField(
             controller: nameController,
-            decoration: const InputDecoration(labelText: "Your Name"),
+            decoration: const InputDecoration(labelText: "Your Name *"),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _selectedDistrict,
+            decoration: const InputDecoration(
+              labelText: "District *",
+              border: OutlineInputBorder(),
+            ),
+            items: districts
+                .map((district) => DropdownMenuItem(
+                      value: district,
+                      child: Text(district),
+                    ))
+                .toList(),
+            onChanged: (value) => setState(() => _selectedDistrict = value),
           ),
           const SizedBox(height: 12),
           TextField(

@@ -12,6 +12,9 @@ class FirestoreService {
     required String category,
     required String description,
     required String location,
+    required double lat,
+    required double lng,
+    required String district,
     String? imageUrl,
   }) async {
     await _db.collection('reports').add({
@@ -21,9 +24,13 @@ class FirestoreService {
       'category': category,
       'description': description,
       'location': location,
+      'lat': lat,
+      'lng': lng,
+      'district': district,
       'imageUrl': imageUrl,
       'status': 'pending', // default
       'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
