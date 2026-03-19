@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "651608618084",
+    "project_id": "spotit-free",
+    "storage_bucket": "spotit-free.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:651608618084:android:0cdc55bb07ff77754edb71",
+        "android_client_info": {
+          "package_name": "com.example.spotit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFPblkOoc21W6Y4wprTHx1N0UmqZExsf4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
