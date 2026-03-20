@@ -11,83 +11,92 @@ class ReportDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = report.data() as Map<String, dynamic>;
-    final String location = data['location'] ?? "";
+    final String location = data['location'] ?? '';
     final String status = data['status'] ?? 'pending';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Report Details"),
-      ),
+      appBar: AppBar(title: const Text('Report Details')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🏷 Category
+            // Category
             Text(
-              data['category'] ?? "No Category",
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              data['category'] ?? 'No Category',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
-
             const SizedBox(height: 8),
-
-            // 🔖 Status Chip
-            _statusChip(status),
-
+            _statusChip(context, status),
             const SizedBox(height: 16),
-
-            // 🔄 Status Timeline
-            const Text(
-              "Progress",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            // Timeline
+            Text('Progress', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             StatusTimeline(status: status),
-
             const Divider(height: 32),
-
-            // 📝 Description
-            _cardSection(
-              title: "Description",
-              value: data['description'] ?? "No description",
-            ),
-
-            // 📍 Location
-            _cardSection(
-              title: "Location",
-              value: location.isNotEmpty ? location : "Not provided",
-            ),
-
-            // 🌍 Open Map Button
+            // Info Cards
+            _infoCard(context,
+                title: 'Description',
+                value: data['description'] ?? 'No description'),
+            _infoCard(context,
+                title: 'Location',
+                value: location.isNotEmpty ? location : 'Not provided'),
+            // Map Button
             if (location.contains(','))
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.map),
-                  label: const Text("Open in Google Maps"),
+                  label: const Text('Open in Maps'),
                   onPressed: () => _openMap(location),
                 ),
               ),
-
-            // 🖼 Image
+            // Hero Image
             if (data['imageUrl'] != null &&
                 data['imageUrl'].toString().isNotEmpty)
-              _imageSection(data['imageUrl']),
-
-            const SizedBox(height: 16),
-
-            // 🕒 Created At
-            _cardSection(
-              title: "Created At",
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                height: 240,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.network(
+                    data['imageUrl'],
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 240,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(Icons.image_not_supported, size: 64),
+                    ),
+                  ),
+                ),
+              ),
+            // Created
+            _infoCard(
+              context,
+              title: 'Created',
               value: data['createdAt'] != null
                   ? (data['createdAt'] as Timestamp)
                       .toDate()
                       .toLocal()
                       .toString()
-                  : "Unknown",
+                      .split('.')[0]
+                  : 'Unknown',
             ),
           ],
         ),
@@ -95,78 +104,90 @@ class ReportDetailsScreen extends StatelessWidget {
     );
   }
 
-  // 🟢 Status Chip
-  Widget _statusChip(String status) {
+  Widget _statusChip(BuildContext context, String status) {
     Color color;
+    IconData icon;
     switch (status) {
       case 'resolved':
         color = Colors.green;
+        icon = Icons.check_circle;
         break;
       case 'in_progress':
         color = Colors.blue;
+        icon = Icons.hourglass_empty;
         break;
       case 'rejected':
         color = Colors.red;
+        icon = Icons.close;
         break;
       default:
         color = Colors.orange;
+        icon = Icons.schedule;
     }
 
     return Chip(
+      avatar: Icon(icon, size: 16, color: color),
       label: Text(status.toUpperCase()),
       backgroundColor: color.withOpacity(0.15),
-      labelStyle: TextStyle(color: color),
+      side: BorderSide(color: color.withOpacity(0.3)),
     );
   }
 
-  // 📦 Card Section
-  Widget _cardSection({required String title, required String value}) {
+  Widget _infoCard(BuildContext context,
+      {required String title, required String value}) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+        padding: const EdgeInsets.all(16),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Text(value),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.info_outline,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // 🖼 Image Section
-  Widget _imageSection(String imageUrl) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Image", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(imageUrl, fit: BoxFit.cover),
-        ),
-      ],
-    );
-  }
-
-  // 🌍 Open Google Maps
   Future<void> _openMap(String location) async {
     final parts = location.split(',');
-    if (parts.length != 2) return;
+    if (parts.length < 2) return;
 
     final lat = parts[0].trim();
     final lng = parts[1].trim();
 
-    final Uri url = Uri.parse(
-      "https://www.google.com/maps/search/?api=1&query=$lat,$lng",
-    );
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+    final uri = Uri.parse('https://maps.google.com/?q=$lat,$lng');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 }

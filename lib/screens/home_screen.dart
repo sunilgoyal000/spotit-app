@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firestore_service.dart';
+import '../components/stat_card.dart';
 import 'submit_report_screen.dart';
 import 'my_reports_screen.dart';
 
@@ -48,7 +49,7 @@ class HomeScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // 📊 Stats
+              // 📊 Stats - Responsive Grid
               if (user != null)
                 StreamBuilder<Map<String, int>>(
                   stream: FirestoreService.reportStats(user.uid),
@@ -64,27 +65,38 @@ class HomeScreen extends StatelessWidget {
 
                     final stats = snapshot.data!;
 
-                    return Row(
-                      children: [
-                        _StatCard(
-                          title: "Total",
-                          value: stats['total']!,
-                          icon: Icons.description,
-                          color: Colors.blue,
-                        ),
-                        _StatCard(
-                          title: "Pending",
-                          value: stats['pending']!,
-                          icon: Icons.hourglass_top,
-                          color: Colors.orange,
-                        ),
-                        _StatCard(
-                          title: "Resolved",
-                          value: stats['resolved']!,
-                          icon: Icons.check_circle,
-                          color: Colors.green,
-                        ),
-                      ],
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final crossCount = constraints.maxWidth > 400 ? 3 : 2;
+                        return GridView.count(
+                          crossAxisCount: crossCount,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          childAspectRatio: 1.2,
+                          children: [
+                            StatCard(
+                              title: "Total",
+                              value: stats['total']!,
+                              icon: Icons.description,
+                              color: Colors.blue,
+                            ),
+                            StatCard(
+                              title: "Pending",
+                              value: stats['pending']!,
+                              icon: Icons.hourglass_top,
+                              color: Colors.orange,
+                            ),
+                            StatCard(
+                              title: "Resolved",
+                              value: stats['resolved']!,
+                              icon: Icons.check_circle,
+                              color: Colors.green,
+                            ),
+                          ],
+                        );
+                      },
                     );
                   },
                 ),
@@ -147,54 +159,6 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 📊 Clean Stat Card
-class _StatCard extends StatelessWidget {
-  final String title;
-  final int value;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 8),
-            Text(
-              value.toString(),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
         ),
       ),
     );

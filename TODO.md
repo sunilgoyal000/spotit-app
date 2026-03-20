@@ -1,23 +1,21 @@
-# SpotIt Phase 1 Implementation TODO
+# SpotIt UI/UX Upgrade TODO
 
-## Phase 1: Security & Core Fixes (Approved)
+## Phase 1: Foundation ✅ COMPLETE
+- [x] Create design system files (colors.dart, typography.dart)
+- [x] Upgrade lib/theme/app_theme.dart 
+- [x] Create lib/components/ folder with core widgets (report_card.dart, stat_card.dart, category_chip.dart)
+- [ ] Fix signup_screen.dart gradient consistency → Next
 
-**Step 1: [PENDING] Create firestore.rules**
-- User-only own reports access
+## Phase 2: Core Screens
+- [ ] Upgrade home_screen.dart with SliverAppBar + responsive stats
+- [ ] Upgrade my_reports_screen.dart with custom ReportCard + filters
+- [ ] Polish submit_report_screen.dart (rich text, drag-drop images)
+- [ ] Upgrade report_details_screen.dart (hero image, collapsible timeline)
 
-**Step 2: [PENDING] Create storage.rules** 
-- Public read, auth write for images
+## Phase 3: Polish
+- [ ] Add bottom navigation (main_shell.dart)
+- [ ] Add skeleton loaders + empty states everywhere
+- [ ] Responsive tweaks + animations
+- [ ] Test on different screen sizes
 
-**Step 3: [✅ DONE] Update functions/index.js**
-- Rate limiting, image attachment, 3x retry, rich HTML, district support, admin link
-
-**Step 4: [✅ DONE] Update lib/services/firestore_service.dart**
-- Added district, lat, lng, updatedAt to submitReport signature + data
-
-**Step 5: [✅ DONE] Update lib/screens/submit_report_screen.dart**
-- Validation, lat/lng parsing, district dropdown UI, error handling (compile fixed)
-
-**Step 6: [🚀 READY] Deploy & Test**
-- `firebase deploy --only firestore:rules,storage:rules,functions`
-- Test submit → email attachment → security rules
-
+**Next Step:** Phase 1 signup fix → Phase 2

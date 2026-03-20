@@ -1,72 +1,122 @@
 import 'package:flutter/material.dart';
+import 'colors.dart';
+import 'typography.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-
-      // 🎨 Color Scheme
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF2E7D32), // Deep green
+      colorScheme: const ColorScheme(
         brightness: Brightness.light,
+        primary: AppColors.primary,
+        onPrimary: AppColors.onPrimary,
+        primaryContainer: AppColors.primaryContainer,
+        secondary: AppColors.secondary,
+        onSecondary: AppColors.onSurface,
+        secondaryContainer: AppColors.secondaryContainer,
+        error: AppColors.error,
+        onError: Color(0xFFFFFFFF),
+        background: AppColors.background,
+        onBackground: AppColors.onSurface,
+        surface: AppColors.surface,
+        onSurface: AppColors.onSurface,
+      ),
+      scaffoldBackgroundColor: AppColors.background,
+
+      // Typography
+      textTheme: TextTheme(
+        displayLarge:
+            AppTypography.displayLarge.copyWith(color: AppColors.onSurface),
+        displayMedium:
+            AppTypography.displayMedium.copyWith(color: AppColors.onSurface),
+        headlineLarge:
+            AppTypography.headlineLarge.copyWith(color: AppColors.onSurface),
+        headlineMedium:
+            AppTypography.headlineMedium.copyWith(color: AppColors.onSurface),
+        titleLarge:
+            AppTypography.titleLarge.copyWith(color: AppColors.onSurface),
+        titleMedium:
+            AppTypography.titleMedium.copyWith(color: AppColors.onSurface),
+        bodyLarge: AppTypography.bodyLarge.copyWith(color: AppColors.onSurface),
+        bodyMedium: AppTypography.bodyMedium
+            .copyWith(color: AppColors.onSurfaceVariant),
+        bodySmall:
+            AppTypography.bodySmall.copyWith(color: AppColors.onSurfaceVariant),
+        labelLarge:
+            AppTypography.labelLarge.copyWith(color: AppColors.onSurface),
+        labelMedium: AppTypography.labelMedium
+            .copyWith(color: AppColors.onSurfaceVariant),
       ),
 
-      scaffoldBackgroundColor: const Color(0xFFF6F8F6),
-
-      // 📱 AppBar
+      // AppBar
       appBarTheme: const AppBarTheme(
-        centerTitle: true,
+        centerTitle: false,
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.onSurface,
         titleTextStyle: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.black,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
         ),
+        toolbarHeight: 72,
       ),
 
-      // 🧾 Input Fields
+      // Inputs
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColors.surface,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.outline, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.outline, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
-        labelStyle: const TextStyle(color: Colors.grey),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.error, width: 2),
+        ),
+        labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
+        hintStyle: const TextStyle(color: AppColors.onSurfaceVariant),
       ),
 
-      // 🔘 Buttons
+      // Buttons
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2E7D32),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          elevation: 2,
         ),
       ),
 
-      // 🃏 Cards
+      // Cards
       cardTheme: CardThemeData(
-        elevation: 1,
-        color: Colors.white,
+        color: AppColors.surface,
+        elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        margin: const EdgeInsets.symmetric(vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+
+      // Bottom Nav
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.onSurfaceVariant,
+        elevation: 8,
       ),
     );
   }

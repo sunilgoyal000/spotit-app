@@ -46,6 +46,12 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
     _IssueCategory("Other", Icons.more_horiz, Colors.grey),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    // Import CategoryChip
+  }
+
   // ─────────────────────────────
   // NAVIGATION
   // ─────────────────────────────
@@ -213,19 +219,18 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: GridView.count(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        children: categories.map((item) {
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        children: categories.map<Widget>((item) {
           final selected = category == item.label;
-          return InkWell(
-            borderRadius: BorderRadius.circular(16),
+          return GestureDetector(
             onTap: () => setState(() => category = item.label),
             child: Container(
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: selected
-                    ? item.color.withOpacity(0.2)
-                    : Colors.grey.withOpacity(0.08),
+                color:
+                    selected ? item.color.withOpacity(0.2) : Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
                 border:
                     selected ? Border.all(color: item.color, width: 2) : null,
@@ -233,9 +238,15 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(item.icon, color: item.color),
+                  Icon(item.icon, color: item.color, size: 32),
                   const SizedBox(height: 8),
-                  Text(item.label, textAlign: TextAlign.center),
+                  Text(
+                    item.label,
+                    style: TextStyle(
+                      fontWeight:
+                          selected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -360,9 +371,17 @@ class _ProgressIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LinearProgressIndicator(
-      value: (step + 1) / 3,
-      minHeight: 6,
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        LinearProgressIndicator(
+          value: (step + 1) / 3,
+          backgroundColor: theme.colorScheme.surfaceVariant,
+          valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+          minHeight: 6,
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 }

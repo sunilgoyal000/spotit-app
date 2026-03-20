@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../components/report_card.dart';
 import '../services/firestore_service.dart';
 import 'report_details_screen.dart';
 
@@ -17,20 +18,6 @@ class MyReportsScreen extends StatelessWidget {
       'Streetlight' => Colors.orange,
       _ => Colors.grey,
     };
-  }
-
-  Widget _statusChip(String status) {
-    final color = switch (status) {
-      'resolved' => Colors.green,
-      'rejected' => Colors.red,
-      _ => Colors.orange,
-    };
-
-    return Chip(
-      label: Text(status.toUpperCase()),
-      backgroundColor: color.withOpacity(0.2),
-      labelStyle: TextStyle(color: color, fontWeight: FontWeight.bold),
-    );
   }
 
   @override
@@ -127,41 +114,17 @@ class MyReportsScreen extends StatelessWidget {
                 final data = doc.data() as Map<String, dynamic>;
                 final categoryColor = _getCategoryColor(data['category']);
 
-                return Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: categoryColor,
-                      child: Text((data['category'] ?? '?')[0].toUpperCase()),
-                    ),
-                    title: Text(
-                      data['category'] ?? 'Unknown',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (data['location'] != null) ...[
-                          Text(
-                            data['location'],
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                        Text(
-                          data['description'] ?? '',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                    trailing: _statusChip(data['status'] ?? 'pending'),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ReportDetailsScreen(report: doc),
-                      ),
+                ReportCard(
+                  category: data['category'] ?? 'Unknown',
+                  location: data['location'] ?? 'No location',
+                  description: data['description'] ?? 'No description',
+                  status: data['status'] ?? 'pending',
+                  imageUrl: data['imageUrl'],
+                  categoryColor: categoryColor,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ReportDetailsScreen(report: doc),
                     ),
                   ),
                 );
