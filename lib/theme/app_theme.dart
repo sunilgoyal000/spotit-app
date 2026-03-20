@@ -4,23 +4,28 @@ import 'typography.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.light,
+    ).copyWith(
+      primary: AppColors.primary,
+      onPrimary: AppColors.onPrimary,
+      primaryContainer: AppColors.primaryContainer,
+      secondary: AppColors.secondary,
+      onSecondary: AppColors.onSurface,
+      secondaryContainer: AppColors.secondaryContainer,
+      error: AppColors.error,
+      onError: const Color(0xFFFFFFFF),
+      surface: AppColors.surface,
+      onSurface: AppColors.onSurface,
+      onSurfaceVariant: AppColors.onSurfaceVariant,
+      outline: AppColors.outline,
+      surfaceContainerHighest: AppColors.surfaceVariant,
+    );
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: const ColorScheme(
-        brightness: Brightness.light,
-        primary: AppColors.primary,
-        onPrimary: AppColors.onPrimary,
-        primaryContainer: AppColors.primaryContainer,
-        secondary: AppColors.secondary,
-        onSecondary: AppColors.onSurface,
-        secondaryContainer: AppColors.secondaryContainer,
-        error: AppColors.error,
-        onError: Color(0xFFFFFFFF),
-        background: AppColors.background,
-        onBackground: AppColors.onSurface,
-        surface: AppColors.surface,
-        onSurface: AppColors.onSurface,
-      ),
+      colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
 
       // Typography

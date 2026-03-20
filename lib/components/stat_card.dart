@@ -24,15 +24,15 @@ class StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            color.withOpacity(0.08),
-            color.withOpacity(0.02),
+            color.withValues(alpha: 0.08),
+            color.withValues(alpha: 0.02),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           width: 1,
         ),
       ),
