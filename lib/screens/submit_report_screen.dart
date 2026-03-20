@@ -74,7 +74,6 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
 
   Future<void> next() async {
     if (!_validateCurrentStep()) return;
-    if (!mounted) return;
 
     if (currentStep < steps.length - 1) {
       setState(() => currentStep++);
@@ -102,7 +101,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
     }
 
     if (currentStep == 1) {
-      if (_trimmedDescription.length < 10) {
+      if (descriptionController.text.trim().length < 10) {
         _showMessage("Add at least 10 characters describing the issue.");
         return false;
       }
@@ -114,7 +113,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
     }
 
     if (currentStep == 2) {
-      if (_trimmedName.isEmpty) {
+      if (nameController.text.trim().isEmpty) {
         _showMessage("Please enter your name.");
         return false;
       }
@@ -129,17 +128,10 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
   }
 
   Future<void> pickImage(ImageSource source) async {
-    final picked = await _picker.pickImage(source: source);
-    if (!mounted) return;
-
+    final picked = await ImagePicker().pickImage(source: source);
     if (picked != null) {
       setState(() => image = File(picked.path));
     }
-  }
-
-  void removeImage() {
-    if (!mounted) return;
-    setState(() => image = null);
   }
 
   Future<void> showImageSourcePicker() async {
@@ -168,15 +160,6 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                   await pickImage(ImageSource.gallery);
                 },
               ),
-              if (image != null)
-                ListTile(
-                  leading: const Icon(Icons.delete_outline),
-                  title: const Text("Remove current photo"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    removeImage();
-                  },
-                ),
             ],
           ),
         );
@@ -292,26 +275,11 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
     return categories.firstWhere((item) => item.label == category);
   }
 
-  String get _trimmedDescription => descriptionController.text.trim();
-
-  String get _trimmedName => nameController.text.trim();
-
-  String? get _locationDisplay {
-    if (locationText == null) return null;
-    final parts = locationText!.split(',');
-    if (parts.length < 2) return locationText;
-
-    final lat = double.tryParse(parts[0].trim());
-    final lng = double.tryParse(parts[1].trim());
-    if (lat == null || lng == null) return locationText;
-
-    return "${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}";
-  }
-
   String get _locationLabel {
-    return _locationDisplay == null
-        ? "Location not captured yet"
-        : "Coordinates: $_locationDisplay";
+    if (locationText == null) return "Location not captured yet";
+    final parts = locationText!.split(', ');
+    if (parts.length < 2) return locationText!;
+    return "Lat ${parts[0]}, Lng ${parts[1]}";
   }
 
   @override
@@ -546,7 +514,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          initialValue: _selectedDistrict,
+          value: _selectedDistrict,
           decoration: const InputDecoration(
             labelText: "District *",
           ),
@@ -597,8 +565,9 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                 _ReviewRow(label: "Issue type", value: category),
                 _ReviewRow(
                   label: "Description",
-                  value:
-                      _trimmedDescription.isEmpty ? "Not added yet" : _trimmedDescription,
+                  value: descriptionController.text.trim().isEmpty
+                      ? "Not added yet"
+                      : descriptionController.text.trim(),
                 ),
                 _ReviewRow(label: "Location", value: _locationLabel),
                 _ReviewRow(
@@ -608,12 +577,6 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                 _ReviewRow(
                   label: "District",
                   value: _selectedDistrict ?? "Not selected",
-                ),
-                _ReviewRow(
-                  label: "Contact",
-                  value: phoneController.text.trim().isEmpty
-                      ? "No phone number shared"
-                      : phoneController.text.trim(),
                 ),
               ],
             ),
@@ -679,7 +642,7 @@ class _ProgressHeader extends StatelessWidget {
         children: [
           LinearProgressIndicator(
             value: (currentStep + 1) / steps.length,
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            backgroundColor: theme.colorScheme.surfaceVariant,
             valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
             minHeight: 8,
             borderRadius: BorderRadius.circular(999),
@@ -701,7 +664,7 @@ class _ProgressHeader extends StatelessWidget {
                             radius: 12,
                             backgroundColor: isActive || isComplete
                                 ? theme.colorScheme.primary
-                                : theme.colorScheme.surfaceContainerHighest,
+                                : theme.colorScheme.surfaceVariant,
                             child: Text(
                               "${index + 1}",
                               style: theme.textTheme.labelSmall?.copyWith(
@@ -762,7 +725,7 @@ class _SummaryBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+        color: theme.colorScheme.primary.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
