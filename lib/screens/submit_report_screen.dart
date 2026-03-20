@@ -18,6 +18,7 @@ class SubmitReportScreen extends StatefulWidget {
 }
 
 class _SubmitReportScreenState extends State<SubmitReportScreen> {
+  final ImagePicker _picker = ImagePicker();
   final PageController _pageController = PageController();
   final descriptionController = TextEditingController();
   final nameController = TextEditingController();
@@ -85,6 +86,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
 
   Future<void> back() async {
     if (currentStep > 0) {
+      if (!mounted) return;
       setState(() => currentStep--);
       await _pageController.previousPage(
         duration: const Duration(milliseconds: 250),
@@ -191,6 +193,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       locationText = "${loc.latitude}, ${loc.longitude}";
     });
@@ -202,6 +205,11 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
     final uri = Uri.parse(
       "https://www.google.com/maps/search/?api=1&query=$locationText",
     );
+    if (!await canLaunchUrl(uri)) {
+      _showMessage("Couldn't open the map preview on this device.");
+      return;
+    }
+
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
@@ -229,11 +237,11 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
 
       await FirestoreService.submitReport(
         userId: user.uid,
-        name: nameController.text.trim(),
+        name: _trimmedName,
         phone: phoneController.text.trim(),
         sharePhone: sharePhone,
         category: category,
-        description: descriptionController.text.trim(),
+        description: _trimmedDescription,
         location: locationText!,
         lat: lat,
         lng: lng,
