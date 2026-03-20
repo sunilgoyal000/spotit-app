@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/colors.dart';
 
 class CategoryChip extends StatelessWidget {
   final String label;
@@ -20,7 +19,7 @@ class CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isSelected ? color.withOpacity(0.12) : Colors.transparent,
+      color: isSelected ? color.withValues(alpha: 0.12) : Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),

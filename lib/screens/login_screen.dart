@@ -28,10 +28,12 @@ class _LoginScreenState extends State<LoginScreen> {
       // 🔥 SAVE USER
       await UserService.saveUser(credential.user!);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
     }
+    if (!mounted) return;
     setState(() => loading = false);
   }
 
@@ -58,6 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
@@ -69,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.primary.withOpacity(0.05),
+      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.05),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -110,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -182,6 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           try {
                             await GoogleAuthService.signInWithGoogle();
                           } catch (e) {
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text(e.toString())),
                             );

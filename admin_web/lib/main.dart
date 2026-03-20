@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:csv/csv.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,7 +65,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: selectedDistrict,
+                    initialValue: selectedDistrict,
                     decoration: const InputDecoration(
                       labelText: 'District',
                       border: OutlineInputBorder(),
@@ -83,7 +80,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: selectedStatus,
+                    initialValue: selectedStatus,
                     decoration: const InputDecoration(
                       labelText: 'Status',
                       border: OutlineInputBorder(),

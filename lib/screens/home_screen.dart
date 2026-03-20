@@ -184,7 +184,7 @@ class _ActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: color.withOpacity(0.08),
+      color: color.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),

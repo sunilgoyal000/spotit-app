@@ -114,7 +114,7 @@ class MyReportsScreen extends StatelessWidget {
                 final data = doc.data() as Map<String, dynamic>;
                 final categoryColor = _getCategoryColor(data['category']);
 
-                ReportCard(
+                return ReportCard(
                   category: data['category'] ?? 'Unknown',
                   location: data['location'] ?? 'No location',
                   description: data['description'] ?? 'No description',
