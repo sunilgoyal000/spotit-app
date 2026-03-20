@@ -33,6 +33,9 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
   String? locationText;
   bool sharePhone = false;
 
+  String get _trimmedName => nameController.text.trim();
+  String get _trimmedDescription => descriptionController.text.trim();
+
   final List<String> districts = [
     'Mohali',
     'Chandigarh',
@@ -643,7 +646,8 @@ class _ProgressHeader extends StatelessWidget {
           LinearProgressIndicator(
             value: (currentStep + 1) / steps.length,
             backgroundColor: theme.colorScheme.surfaceVariant,
-            valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+            valueColor:
+                AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
             minHeight: 8,
             borderRadius: BorderRadius.circular(999),
           ),
@@ -655,7 +659,8 @@ class _ProgressHeader extends StatelessWidget {
 
               return Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(right: index == steps.length - 1 ? 0 : 8),
+                  padding:
+                      EdgeInsets.only(right: index == steps.length - 1 ? 0 : 8),
                   child: Column(
                     children: [
                       Row(
@@ -682,8 +687,9 @@ class _ProgressHeader extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.labelMedium?.copyWith(
-                                fontWeight:
-                                    isActive ? FontWeight.w700 : FontWeight.w500,
+                                fontWeight: isActive
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
                                 color: isActive || isComplete
                                     ? theme.colorScheme.onSurface
                                     : theme.colorScheme.onSurfaceVariant,
