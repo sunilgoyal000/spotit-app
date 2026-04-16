@@ -2,229 +2,436 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firestore_service.dart';
 import '../components/stat_card.dart';
+import '../theme/colors.dart';
 import 'submit_report_screen.dart';
-import 'my_reports_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  String _initials(User user) {
+    if (user.displayName != null && user.displayName!.isNotEmpty) {
+      final parts = user.displayName!.trim().split(' ');
+      if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      return parts[0][0].toUpperCase();
+    }
+    if (user.email != null && user.email!.isNotEmpty) {
+      return user.email![0].toUpperCase();
+    }
+    return 'U';
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("SpotIt"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-            },
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        slivers: [
+          // ── Hero Header ────────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: _HeroHeader(user: user, greeting: _greeting(), initials: user != null ? _initials(user) : 'U'),
           ),
+
+          // ── Stats ─────────────────────────────────────────────────────
+          if (user != null)
+            SliverToBoxAdapter(
+              child: StreamBuilder<Map<String, int>>(
+                stream: FirestoreService.reportStats(user.uid),
+                builder: (context, snapshot) {
+                  final stats = snapshot.data ?? {'total': 0, 'pending': 0, 'resolved': 0};
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: StatCard(
+                            title: 'Total',
+                            value: stats['total']!,
+                            icon: Icons.assignment_rounded,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: StatCard(
+                            title: 'Pending',
+                            value: stats['pending']!,
+                            icon: Icons.hourglass_top_rounded,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: StatCard(
+                            title: 'Resolved',
+                            value: stats['resolved']!,
+                            icon: Icons.check_circle_rounded,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
+          // ── Section: Quick Actions ─────────────────────────────────────
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 28, 20, 12),
+              child: Text(
+                'Quick Actions',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+          ),
+
+          // ── Report Button (Primary CTA) ────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _ReportActionCard(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SubmitReportScreen()),
+                ),
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+          // ── Quick Info Grid ────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _InfoCard(
+                      icon: Icons.location_city_rounded,
+                      iconColor: AppColors.secondary,
+                      title: 'City Coverage',
+                      subtitle: 'Mohali, Chandigarh\n& more',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _InfoCard(
+                      icon: Icons.verified_rounded,
+                      iconColor: AppColors.success,
+                      title: 'Verified Reports',
+                      subtitle: 'Reviewed by local\nauthorities',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+          // ── Footer ────────────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Center(
+              child: Text(
+                'SpotIt • Making cities better',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.onSurfaceMuted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 👋 Greeting
-              Text(
-                "Welcome 👋",
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              if (user?.email != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    user!.email!,
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ),
 
-              const SizedBox(height: 24),
-
-              // 📊 Stats - Responsive Grid
-              if (user != null)
-                StreamBuilder<Map<String, int>>(
-                  stream: FirestoreService.reportStats(user.uid),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-
-                    final stats = snapshot.data!;
-
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        final crossCount = constraints.maxWidth > 400 ? 3 : 2;
-                        return GridView.count(
-                          crossAxisCount: crossCount,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          childAspectRatio: 1.2,
-                          children: [
-                            StatCard(
-                              title: "Total",
-                              value: stats['total']!,
-                              icon: Icons.description,
-                              color: Colors.blue,
-                            ),
-                            StatCard(
-                              title: "Pending",
-                              value: stats['pending']!,
-                              icon: Icons.hourglass_top,
-                              color: Colors.orange,
-                            ),
-                            StatCard(
-                              title: "Resolved",
-                              value: stats['resolved']!,
-                              icon: Icons.check_circle,
-                              color: Colors.green,
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                ),
-
-              const SizedBox(height: 28),
-
-              // ⚡ Section title
-              const Text(
-                "Quick Actions",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // 🚨 Report Issue
-              _ActionTile(
-                icon: Icons.report_problem,
-                color: Colors.orange,
-                title: "Report an Issue",
-                subtitle: "Garbage, potholes, water leakage & more",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SubmitReportScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 12),
-
-              // 📂 My Reports
-              _ActionTile(
-                icon: Icons.history,
-                color: Colors.blue,
-                title: "My Reports",
-                subtitle: "Track status of submitted issues",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const MyReportsScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const Spacer(),
-
-              // 🏷 Footer
-              const Center(
-                child: Text(
-                  "SpotIt • Making cities better",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ),
-            ],
-          ),
+      // ── FAB ───────────────────────────────────────────────────────────────
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SubmitReportScreen()),
+        ),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          'Report Issue',
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
 }
 
-/// 🔘 Action Tile (cleaner than cards)
-class _ActionTile extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
+// ── Hero Header ─────────────────────────────────────────────────────────────
 
-  const _ActionTile({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
+class _HeroHeader extends StatelessWidget {
+  final User? user;
+  final String greeting;
+  final String initials;
+
+  const _HeroHeader({
+    required this.user,
+    required this.greeting,
+    required this.initials,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: color.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
+    final displayName = user?.displayName?.isNotEmpty == true
+        ? user!.displayName!.split(' ').first
+        : user?.email?.split('@').first ?? 'there';
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: AppColors.heroGradient,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        MediaQuery.of(context).padding.top + 20,
+        20,
+        28,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: color,
-                child: Icon(icon, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      greeting,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
+                        fontSize: 14,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.2,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
-                      subtitle,
+                      displayName,
                       style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
+                        fontSize: 26,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
+              // Avatar
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.2),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 2),
+                  image: user?.photoURL != null
+                      ? DecorationImage(
+                          image: NetworkImage(user!.photoURL!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: user?.photoURL == null
+                    ? Center(
+                        child: Text(
+                          initials,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
             ],
           ),
+
+          const SizedBox(height: 20),
+
+          // Tagline pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.location_on_rounded, color: Colors.white, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'Report civic issues in your area',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Report Action Card ───────────────────────────────────────────────────────
+
+class _ReportActionCard extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _ReportActionCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF16A34A), Color(0xFF15803D)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: AppColors.primaryShadow,
         ),
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.report_problem_rounded, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Report an Issue',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Garbage, potholes, water leakage & more',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Info Card ────────────────────────────────────────────────────────────────
+
+class _InfoCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+
+  const _InfoCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.outline),
+        boxShadow: AppColors.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 22),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }

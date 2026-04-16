@@ -590,36 +590,54 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
   }
 
   Widget _bottomBar() {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Row(
-          children: [
-            if (currentStep > 0)
-              TextButton(
-                onPressed: isSubmitting ? null : back,
-                child: const Text("Back"),
-              ),
-            const Spacer(),
-            ElevatedButton(
-              onPressed: isSubmitting
-                  ? null
-                  : (currentStep == steps.length - 1 ? submit : next),
-              child: isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Row(
+            children: [
+              if (currentStep > 0)
+                OutlinedButton(
+                  onPressed: isSubmitting ? null : back,
+                  child: const Text("Back"),
+                ),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: isSubmitting
+                    ? null
+                    : (currentStep == steps.length - 1 ? submit : next),
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(currentStep == steps.length - 1
+                              ? "Submit Report"
+                              : "Continue"),
+                          const SizedBox(width: 6),
+                          Icon(
+                            currentStep == steps.length - 1
+                                ? Icons.send_rounded
+                                : Icons.arrow_forward_rounded,
+                            size: 16,
+                          ),
+                        ],
                       ),
-                    )
-                  : Text(currentStep == steps.length - 1
-                      ? "Submit report"
-                      : "Continue"),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -645,7 +663,7 @@ class _ProgressHeader extends StatelessWidget {
         children: [
           LinearProgressIndicator(
             value: (currentStep + 1) / steps.length,
-            backgroundColor: theme.colorScheme.surfaceVariant,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
             valueColor:
                 AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
             minHeight: 8,
@@ -669,7 +687,7 @@ class _ProgressHeader extends StatelessWidget {
                             radius: 12,
                             backgroundColor: isActive || isComplete
                                 ? theme.colorScheme.primary
-                                : theme.colorScheme.surfaceVariant,
+                                : theme.colorScheme.surfaceContainerHighest,
                             child: Text(
                               "${index + 1}",
                               style: theme.textTheme.labelSmall?.copyWith(
@@ -731,7 +749,7 @@ class _SummaryBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.08),
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

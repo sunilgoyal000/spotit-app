@@ -21,128 +21,152 @@ class ReportCard extends StatelessWidget {
     required this.categoryColor,
   });
 
+  IconData get _categoryIcon {
+    return switch (category.toLowerCase()) {
+      'garbage' => Icons.delete_outline_rounded,
+      'pothole' => Icons.construction_rounded,
+      'water leakage' => Icons.water_drop_outlined,
+      'streetlight' => Icons.lightbulb_outline_rounded,
+      _ => Icons.report_problem_outlined,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // Use Theme.of(context).colorScheme.surface in widgets
-
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 🖼 Thumbnail or Category Icon
-              if (imageUrl != null)
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.outline),
+          boxShadow: AppColors.cardShadow,
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Thumbnail / Icon ──────────────────────────────────
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl!,
-                    width: 64,
-                    height: 64,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        _categoryIcon(categoryColor),
-                  ),
-                )
-              else
-                _categoryIcon(categoryColor),
+                  borderRadius: BorderRadius.circular(14),
+                  child: imageUrl != null
+                      ? Image.network(
+                          imageUrl!,
+                          width: 68,
+                          height: 68,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _IconBox(color: categoryColor, icon: _categoryIcon),
+                        )
+                      : _IconBox(color: categoryColor, icon: _categoryIcon),
+                ),
 
-              const SizedBox(width: 12),
+                const SizedBox(width: 14),
 
-              // 📝 Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        // 🏷 Category
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: categoryColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            category,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: categoryColor,
+                // ── Content ──────────────────────────────────────────
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Row: category badge + status
+                      Row(
+                        children: [
+                          _CategoryTag(label: category, color: categoryColor),
+                          const Spacer(),
+                          _StatusBadge(status: status),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Location
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded, size: 13, color: AppColors.onSurfaceMuted),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              location,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 5),
+
+                      // Description
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.onSurface,
+                          height: 1.4,
                         ),
-                        const Spacer(),
-                        // 🟢 Status Badge
-                        _StatusBadge(status: status),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // 📍 Location
-                    Text(
-                      location,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: theme.colorScheme.onSurface,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    // 📄 Description
-                    Text(
-                      description,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _categoryIcon(Color color) {
+class _IconBox extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+
+  const _IconBox({required this.color, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(
-        _getCategoryIcon(),
-        color: color,
-        size: 24,
-      ),
+      width: 68,
+      height: 68,
+      color: color.withValues(alpha: 0.1),
+      child: Icon(icon, color: color, size: 28),
     );
   }
+}
 
-  IconData _getCategoryIcon() {
-    return switch (category.toLowerCase()) {
-      'garbage' => Icons.delete_outline,
-      'pothole' => Icons.construction_outlined,
-      'water leakage' => Icons.water_drop_outlined,
-      'streetlight' => Icons.lightbulb_outline,
-      _ => Icons.report_problem_outlined,
-    };
+class _CategoryTag extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _CategoryTag({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
   }
 }
 
@@ -154,9 +178,18 @@ class _StatusBadge extends StatelessWidget {
   Color get _color {
     return switch (status) {
       'resolved' => AppColors.success,
-      'in_progress' => Colors.blue,
+      'in_progress' => AppColors.secondary,
       'rejected' => AppColors.error,
-      _ => Colors.orange,
+      _ => AppColors.warning,
+    };
+  }
+
+  String get _label {
+    return switch (status) {
+      'in_progress' => 'In Progress',
+      'resolved' => 'Resolved',
+      'rejected' => 'Rejected',
+      _ => 'Pending',
     };
   }
 
@@ -166,15 +199,15 @@ class _StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: _color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        status.toUpperCase(),
+        _label,
         style: TextStyle(
-          color: _color,
           fontSize: 10,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
+          fontWeight: FontWeight.w700,
+          color: _color,
+          letterSpacing: 0.3,
         ),
       ),
     );
