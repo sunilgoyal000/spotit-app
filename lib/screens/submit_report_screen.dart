@@ -6,9 +6,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:location/location.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../components/category_chip.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
+import '../theme/colors.dart';
 
 class SubmitReportScreen extends StatefulWidget {
   const SubmitReportScreen({super.key});
@@ -26,6 +26,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
 
   int currentStep = 0;
   bool isSubmitting = false;
+  bool _categoryOpen = false;
 
   String category = "Garbage";
   String? _selectedDistrict = 'Mohali';
@@ -335,39 +336,169 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
   }
 
   Widget _stepCategory() {
-    return Padding(
+    final selected = categories.firstWhere((c) => c.label == category);
+
+    return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SummaryBanner(
-            icon: Icons.tips_and_updates_outlined,
-            title: "Tip",
-            message:
-                "Choose the closest category so the report reaches the right team faster.",
+      children: [
+        _SummaryBanner(
+          icon: Icons.tips_and_updates_outlined,
+          title: 'Tip',
+          message:
+              'Choose the closest category so the report reaches the right team faster.',
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          'ISSUE TYPE',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceMuted,
+            letterSpacing: 1.2,
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.25,
-              children: categories
-                  .map(
-                    (item) => CategoryChip(
-                      label: item.label,
-                      icon: item.icon,
-                      color: item.color,
-                      isSelected: category == item.label,
-                      onTap: () => setState(() => category = item.label),
-                    ),
-                  )
-                  .toList(),
+        ),
+        const SizedBox(height: 10),
+
+        // ── Dropdown trigger ──────────────────────────────────────────────
+        GestureDetector(
+          onTap: () => setState(() => _categoryOpen = !_categoryOpen),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: _categoryOpen
+                  ? const BorderRadius.vertical(top: Radius.circular(16))
+                  : const BorderRadius.all(Radius.circular(16)),
+              border: Border.all(
+                color: _categoryOpen ? AppColors.primary : AppColors.outline,
+                width: _categoryOpen ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: selected.color,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(selected.icon, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Selected category',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.onSurfaceMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        selected.label,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: selected.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  _categoryOpen
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: AppColors.onSurfaceVariant,
+                  size: 24,
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+
+        // ── Dropdown options (instant show/hide — no animation overhead) ──
+        if (_categoryOpen)
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16)),
+              border: Border.all(color: AppColors.primary, width: 2),
+            ),
+            child: Column(
+              children: categories.map((item) {
+                final isSelected = category == item.label;
+                final bgColor = Color.fromRGBO(item.color.r.toInt(),
+                    item.color.g.toInt(), item.color.b.toInt(), 0.07);
+                final iconBg = Color.fromRGBO(item.color.r.toInt(),
+                    item.color.g.toInt(), item.color.b.toInt(), 0.1);
+                return InkWell(
+                  onTap: () => setState(() {
+                    category = item.label;
+                    _categoryOpen = false;
+                  }),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 13),
+                    decoration: BoxDecoration(
+                      color: isSelected ? bgColor : Colors.transparent,
+                      border: const Border(
+                        top: BorderSide(color: AppColors.outline),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: isSelected ? item.color : iconBg,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(item.icon,
+                              color: isSelected ? Colors.white : item.color,
+                              size: 20),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            item.label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? item.color
+                                  : AppColors.onSurface,
+                            ),
+                          ),
+                        ),
+                        if (isSelected)
+                          Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: item.color,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.check_rounded,
+                                color: Colors.white, size: 13),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+      ],
     );
   }
 

@@ -4,23 +4,21 @@ import '../services/firestore_service.dart';
 import '../theme/colors.dart';
 import 'edit_profile_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
-  String _initials(User user) {
-    if (user.displayName != null && user.displayName!.isNotEmpty) {
-      final parts = user.displayName!.trim().split(' ');
-      if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      return parts[0][0].toUpperCase();
-    }
-    if (user.email != null && user.email!.isNotEmpty) {
-      return user.email![0].toUpperCase();
-    }
-    return 'U';
-  }
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -28,57 +26,43 @@ class ProfileScreen extends StatelessWidget {
     }
 
     final email = user.email ?? 'No email';
-    final displayName = user.displayName?.isNotEmpty == true ? user.displayName! : email.split('@').first;
-    final provider = user.providerData.isNotEmpty ? user.providerData.first.providerId : 'password';
-    final providerLabel = provider == 'password' ? 'Email & Password' : 'Google';
+    final displayName = user.displayName?.isNotEmpty == true
+        ? user.displayName!
+        : email.split('@').first;
+    final provider = user.providerData.isNotEmpty
+        ? user.providerData.first.providerId
+        : 'password';
+    final providerLabel =
+        provider == 'password' ? 'Email & Password' : 'Google';
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          // ── Gradient Header ────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _ProfileHeader(user: user, displayName: displayName, email: email, initials: _initials(user)),
-          ),
-
-          // ── Stats Row ─────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: StreamBuilder<Map<String, int>>(
-              stream: FirestoreService.reportStats(user.uid),
-              builder: (context, snapshot) {
-                final stats = snapshot.data ?? {'total': 0, 'pending': 0, 'resolved': 0};
-                return Container(
-                  margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.outline),
-                    boxShadow: AppColors.cardShadow,
-                  ),
-                  child: Row(
-                    children: [
-                      _StatItem(label: 'Total', value: stats['total']!),
-                      _VerticalDivider(),
-                      _StatItem(label: 'Pending', value: stats['pending']!),
-                      _VerticalDivider(),
-                      _StatItem(label: 'Resolved', value: stats['resolved']!),
-                    ],
-                  ),
-                );
-              },
+      body: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        child: Column(
+          children: [
+            // ── Gradient Header — RepaintBoundary prevents gradient repaints
+            RepaintBoundary(
+              child: _ProfileHeader(
+                user: user,
+                displayName: displayName,
+                email: email,
+              ),
             ),
-          ),
 
-          // ── Settings Sections ─────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
+            // ── Stats — isolated StreamBuilder
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+              child: _ProfileStats(uid: user.uid),
+            ),
+
+            // ── Settings Sections ─────────────────────────────────────────
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Account section
-                  _SectionLabel('Account'),
+                  const _SectionLabel('Account'),
                   const SizedBox(height: 8),
                   _SettingsCard(
                     children: [
@@ -89,7 +73,8 @@ class ProfileScreen extends StatelessWidget {
                         subtitle: 'Update your name and photo',
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const EditProfileScreen()),
                         ),
                       ),
                       const Divider(height: 1, indent: 56),
@@ -102,15 +87,12 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
-                  // App section
-                  _SectionLabel('App'),
+                  const _SectionLabel('App'),
                   const SizedBox(height: 8),
                   _SettingsCard(
                     children: [
-                      _SettingsTile(
+                      const _SettingsTile(
                         icon: Icons.info_outline_rounded,
                         iconColor: AppColors.onSurfaceVariant,
                         title: 'About SpotIt',
@@ -118,7 +100,7 @@ class ProfileScreen extends StatelessWidget {
                         showChevron: false,
                       ),
                       const Divider(height: 1, indent: 56),
-                      _SettingsTile(
+                      const _SettingsTile(
                         icon: Icons.privacy_tip_outlined,
                         iconColor: AppColors.onSurfaceVariant,
                         title: 'Privacy Policy',
@@ -126,33 +108,33 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 28),
-
-                  // Logout
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+                      icon: const Icon(Icons.logout_rounded,
+                          color: AppColors.error),
                       label: const Text(
                         'Sign Out',
-                        style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w600),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.errorContainer, width: 1.5),
+                        side: const BorderSide(
+                            color: AppColors.errorContainer, width: 1.5),
                         backgroundColor: AppColors.errorContainer,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       onPressed: () => _confirmLogout(context),
                     ),
                   ),
-
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 36),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -162,8 +144,10 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Sign Out?', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: const Text('You will need to sign in again to use SpotIt.'),
+        title: const Text('Sign Out?',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content:
+            const Text('You will need to sign in again to use SpotIt.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -180,30 +164,72 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true) {
-      await FirebaseAuth.instance.signOut();
-    }
+    if (confirmed == true) await FirebaseAuth.instance.signOut();
   }
 }
 
-// ── Profile Header ───────────────────────────────────────────────────────────
+// ── Profile Stats — isolated StreamBuilder ────────────────────────────────────
+
+class _ProfileStats extends StatelessWidget {
+  final String uid;
+  const _ProfileStats({required this.uid});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Map<String, int>>(
+      stream: FirestoreService.reportStats(uid),
+      builder: (context, snapshot) {
+        final stats =
+            snapshot.data ?? {'total': 0, 'pending': 0, 'resolved': 0};
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.outline),
+          ),
+          child: Row(
+            children: [
+              _StatItem(label: 'Total', value: stats['total']!),
+              const _VDivider(),
+              _StatItem(label: 'Pending', value: stats['pending']!),
+              const _VDivider(),
+              _StatItem(label: 'Resolved', value: stats['resolved']!),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── Profile Header ────────────────────────────────────────────────────────────
 
 class _ProfileHeader extends StatelessWidget {
   final User user;
   final String displayName;
   final String email;
-  final String initials;
 
   const _ProfileHeader({
     required this.user,
     required this.displayName,
     required this.email,
-    required this.initials,
   });
+
+  String get _initials {
+    if (user.displayName?.isNotEmpty == true) {
+      final p = user.displayName!.trim().split(' ');
+      return p.length >= 2
+          ? '${p[0][0]}${p[1][0]}'.toUpperCase()
+          : p[0][0].toUpperCase();
+    }
+    return email[0].toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       decoration: const BoxDecoration(
         gradient: AppColors.heroGradient,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
@@ -212,35 +238,30 @@ class _ProfileHeader extends StatelessWidget {
         20,
         MediaQuery.of(context).padding.top + 20,
         20,
-        0,
+        28,
       ),
       child: Column(
         children: [
-          // Avatar
           Container(
-            width: 92,
-            height: 92,
+            width: 88,
+            height: 88,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+              color: const Color(0x33FFFFFF),
               image: user.photoURL != null
-                  ? DecorationImage(image: NetworkImage(user.photoURL!), fit: BoxFit.cover)
+                  ? DecorationImage(
+                      image: NetworkImage(user.photoURL!),
+                      fit: BoxFit.cover,
+                    )
                   : null,
-              color: Colors.white.withValues(alpha: 0.2),
             ),
             child: user.photoURL == null
                 ? Center(
                     child: Text(
-                      initials,
+                      _initials,
                       style: const TextStyle(
-                        fontSize: 34,
+                        fontSize: 32,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
@@ -248,9 +269,7 @@ class _ProfileHeader extends StatelessWidget {
                   )
                 : null,
           ),
-
           const SizedBox(height: 14),
-
           Text(
             displayName,
             style: const TextStyle(
@@ -260,23 +279,10 @@ class _ProfileHeader extends StatelessWidget {
               letterSpacing: -0.3,
             ),
           ),
-
           const SizedBox(height: 4),
-
           Text(
             email,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.8),
-            ),
-          ),
-
-          const SizedBox(height: 28),
-
-          // ── Stats card overlaps ──────────────────────────────────────────
-          Transform.translate(
-            offset: const Offset(0, 1),
-            child: const SizedBox(height: 0),
+            style: const TextStyle(fontSize: 14, color: Color(0xCCFFFFFF)),
           ),
         ],
       ),
@@ -284,12 +290,11 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 class _StatItem extends StatelessWidget {
   final String label;
   final int value;
-
   const _StatItem({required this.label, required this.value});
 
   @override
@@ -298,7 +303,7 @@ class _StatItem extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            value.toString(),
+            '$value',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
@@ -320,21 +325,16 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-class _VerticalDivider extends StatelessWidget {
+class _VDivider extends StatelessWidget {
+  const _VDivider();
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 36,
-      color: AppColors.outline,
-    );
-  }
+  Widget build(BuildContext context) =>
+      const SizedBox(width: 1, height: 36, child: ColoredBox(color: AppColors.outline));
 }
 
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
-
   @override
   Widget build(BuildContext context) {
     return Text(
@@ -351,7 +351,6 @@ class _SectionLabel extends StatelessWidget {
 
 class _SettingsCard extends StatelessWidget {
   final List<Widget> children;
-
   const _SettingsCard({required this.children});
 
   @override
@@ -361,7 +360,6 @@ class _SettingsCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.outline),
-        boxShadow: AppColors.cardShadow,
       ),
       child: Column(children: children),
     );
@@ -398,7 +396,8 @@ class _SettingsTile extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.1),
+                color: Color.fromRGBO(iconColor.r.toInt(), iconColor.g.toInt(),
+                    iconColor.b.toInt(), 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: iconColor, size: 18),
@@ -408,23 +407,20 @@ class _SettingsTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
-                  ),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onSurface)),
+                  Text(subtitle,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.onSurfaceVariant)),
                 ],
               ),
             ),
             if (showChevron)
-              const Icon(Icons.chevron_right_rounded, color: AppColors.onSurfaceMuted, size: 20),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.onSurfaceMuted, size: 20),
           ],
         ),
       ),
