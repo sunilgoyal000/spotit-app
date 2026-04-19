@@ -44,6 +44,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 
+/// Wrapped in RepaintBoundary so the GPU layer is cached.
+/// No BoxShadow — shadows on ListView items force a repaint on every scroll frame.
 class ReportCard extends StatelessWidget {
   final String category;
   final String location;
@@ -33,92 +35,92 @@ class ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Container(
-        decoration: BoxDecoration(
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        child: Material(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.outline),
-          boxShadow: AppColors.cardShadow,
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Thumbnail / Icon ──────────────────────────────────
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: imageUrl != null
-                      ? Image.network(
-                          imageUrl!,
-                          width: 68,
-                          height: 68,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _IconBox(color: categoryColor, icon: _categoryIcon),
-                        )
-                      : _IconBox(color: categoryColor, icon: _categoryIcon),
-                ),
-
-                const SizedBox(width: 14),
-
-                // ── Content ──────────────────────────────────────────
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Row: category badge + status
-                      Row(
-                        children: [
-                          _CategoryTag(label: category, color: categoryColor),
-                          const Spacer(),
-                          _StatusBadge(status: status),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Location
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on_rounded, size: 13, color: AppColors.onSurfaceMuted),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(
-                              location,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.onSurfaceVariant,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 5),
-
-                      // Description
-                      Text(
-                        description,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.onSurface,
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.outline),
+              ),
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Thumbnail / Icon ──────────────────────────────────
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: imageUrl != null
+                        ? Image.network(
+                            imageUrl!,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _IconBox(color: categoryColor, icon: _categoryIcon),
+                          )
+                        : _IconBox(color: categoryColor, icon: _categoryIcon),
                   ),
-                ),
-              ],
+
+                  const SizedBox(width: 12),
+
+                  // ── Content ──────────────────────────────────────────
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            _CategoryTag(label: category, color: categoryColor),
+                            const Spacer(),
+                            _StatusBadge(status: status),
+                          ],
+                        ),
+                        const SizedBox(height: 7),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on_rounded,
+                              size: 12,
+                              color: AppColors.onSurfaceMuted,
+                            ),
+                            const SizedBox(width: 3),
+                            Expanded(
+                              child: Text(
+                                location,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          description,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.onSurface,
+                            height: 1.4,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -135,11 +137,14 @@ class _IconBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 68,
-      height: 68,
-      color: color.withValues(alpha: 0.1),
-      child: Icon(icon, color: color, size: 28),
+    return SizedBox(
+      width: 64,
+      height: 64,
+      child: ColoredBox(
+        color: Color.fromRGBO(
+          color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
+        child: Icon(icon, color: color, size: 26),
+      ),
     );
   }
 }
@@ -155,16 +160,13 @@ class _CategoryTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: Color.fromRGBO(
+          color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
       ),
     );
   }
@@ -175,30 +177,27 @@ class _StatusBadge extends StatelessWidget {
 
   const _StatusBadge({required this.status});
 
-  Color get _color {
-    return switch (status) {
-      'resolved' => AppColors.success,
-      'in_progress' => AppColors.secondary,
-      'rejected' => AppColors.error,
-      _ => AppColors.warning,
-    };
-  }
+  Color get _color => switch (status) {
+        'resolved' => AppColors.success,
+        'in_progress' => AppColors.secondary,
+        'rejected' => AppColors.error,
+        _ => AppColors.warning,
+      };
 
-  String get _label {
-    return switch (status) {
-      'in_progress' => 'In Progress',
-      'resolved' => 'Resolved',
-      'rejected' => 'Rejected',
-      _ => 'Pending',
-    };
-  }
+  String get _label => switch (status) {
+        'in_progress' => 'In Progress',
+        'resolved' => 'Resolved',
+        'rejected' => 'Rejected',
+        _ => 'Pending',
+      };
 
   @override
   Widget build(BuildContext context) {
+    final c = _color;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.1),
+        color: Color.fromRGBO(c.r.toInt(), c.g.toInt(), c.b.toInt(), 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -206,8 +205,8 @@ class _StatusBadge extends StatelessWidget {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,
-          color: _color,
-          letterSpacing: 0.3,
+          color: c,
+          letterSpacing: 0.2,
         ),
       ),
     );

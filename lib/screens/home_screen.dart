@@ -9,24 +9,14 @@ import 'submit_report_screen.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
-  String _initials(User user) {
-    if (user.displayName != null && user.displayName!.isNotEmpty) {
-      final parts = user.displayName!.trim().split(' ');
-      if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      return parts[0][0].toUpperCase();
-    }
-    if (user.email != null && user.email!.isNotEmpty) {
-      return user.email![0].toUpperCase();
-    }
-    return 'U';
-  }
+class _HomeScreenState extends State<HomeScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -85,43 +75,23 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
 
-          // ── Section: Quick Actions ─────────────────────────────────────
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 28, 20, 12),
-              child: Text(
-                'Quick Actions',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                  letterSpacing: -0.2,
-                ),
+            const SizedBox(height: 20),
+
+            // ── Stats — isolated StreamBuilder widget
+            if (user != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _StatsRow(uid: user.uid),
               ),
-            ),
-          ),
 
-          // ── Report Button (Primary CTA) ────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _ReportActionCard(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SubmitReportScreen()),
-                ),
-              ),
-            ),
-          ),
+            const SizedBox(height: 28),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            const SizedBox(height: 4),
 
-          // ── Quick Info Grid ────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
-                children: [
+                children: const [
                   Expanded(
                     child: _InfoCard(
                       icon: Icons.location_city_rounded,
@@ -130,7 +100,7 @@ class HomeScreen extends ConsumerWidget {
                       subtitle: 'Mohali, Chandigarh\n& more',
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: _InfoCard(
                       icon: Icons.verified_rounded,
@@ -142,13 +112,10 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
             ),
-          ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            const SizedBox(height: 28),
 
-          // ── Footer ────────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Center(
+            const Center(
               child: Text(
                 'SpotIt • Making cities better',
                 style: TextStyle(
@@ -158,13 +125,11 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        ],
+            const SizedBox(height: 96), // space for FAB
+          ],
+        ),
       ),
-
-      // ── FAB ───────────────────────────────────────────────────────────────
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.push(
           context,
@@ -180,25 +145,91 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-// ── Hero Header ─────────────────────────────────────────────────────────────
+// ── Stats Row — isolated widget so StreamBuilder rebuilds only this ──────────
 
-class _HeroHeader extends StatelessWidget {
-  final User? user;
-  final String greeting;
-  final String initials;
-
-  const _HeroHeader({
-    required this.user,
-    required this.greeting,
-    required this.initials,
-  });
+class _StatsRow extends StatelessWidget {
+  final String uid;
+  const _StatsRow({required this.uid});
 
   @override
   Widget build(BuildContext context) {
-    final displayName = user?.displayName?.isNotEmpty == true
-        ? user!.displayName!.split(' ').first
-        : user?.email?.split('@').first ?? 'there';
+    return StreamBuilder<Map<String, int>>(
+      stream: FirestoreService.reportStats(uid),
+      builder: (context, snapshot) {
+        final stats =
+            snapshot.data ?? {'total': 0, 'pending': 0, 'resolved': 0};
+        return Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                title: 'Total',
+                value: stats['total']!,
+                icon: Icons.assignment_rounded,
+                color: AppColors.secondary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: StatCard(
+                title: 'Pending',
+                value: stats['pending']!,
+                icon: Icons.hourglass_top_rounded,
+                color: AppColors.warning,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: StatCard(
+                title: 'Resolved',
+                value: stats['resolved']!,
+                icon: Icons.check_circle_rounded,
+                color: AppColors.success,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
 
+// ── Hero Header ──────────────────────────────────────────────────────────────
+
+class _HeroHeader extends StatelessWidget {
+  final User? user;
+  final VoidCallback? onProfileTap;
+  const _HeroHeader({required this.user, this.onProfileTap});
+
+  String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  String _initials() {
+    final u = user;
+    if (u == null) return 'U';
+    if (u.displayName?.isNotEmpty == true) {
+      final p = u.displayName!.trim().split(' ');
+      return p.length >= 2
+          ? '${p[0][0]}${p[1][0]}'.toUpperCase()
+          : p[0][0].toUpperCase();
+    }
+    return (u.email ?? 'U')[0].toUpperCase();
+  }
+
+  String _displayName() {
+    final u = user;
+    if (u == null) return 'there';
+    if (u.displayName?.isNotEmpty == true) {
+      return u.displayName!.split(' ').first;
+    }
+    return u.email?.split('@').first ?? 'there';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         gradient: AppColors.heroGradient,
@@ -220,17 +251,16 @@ class _HeroHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      greeting,
+                      _greeting(),
                       style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.white70,
+                        color: Color(0xB3FFFFFF),
                         fontWeight: FontWeight.w500,
-                        letterSpacing: 0.2,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      displayName,
+                      _displayName(),
                       style: const TextStyle(
                         fontSize: 26,
                         color: Colors.white,
@@ -241,60 +271,69 @@ class _HeroHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              // Avatar
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.2),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 2),
-                  image: user?.photoURL != null
-                      ? DecorationImage(
-                          image: NetworkImage(user!.photoURL!),
-                          fit: BoxFit.cover,
+              // Avatar — taps to Profile tab
+              GestureDetector(
+                onTap: onProfileTap,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0x33FFFFFF),
+                    border: Border.all(color: const Color(0x66FFFFFF), width: 2),
+                    image: user?.photoURL != null
+                        ? DecorationImage(
+                            image: NetworkImage(user!.photoURL!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: user?.photoURL == null
+                      ? Center(
+                          child: Text(
+                            _initials(),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
                         )
                       : null,
                 ),
-                child: user?.photoURL == null
-                    ? Center(
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      )
-                    : null,
               ),
             ],
           ),
+          const SizedBox(height: 18),
+          const _TaglinePill(),
+        ],
+      ),
+    );
+  }
+}
 
-          const SizedBox(height: 20),
+class _TaglinePill extends StatelessWidget {
+  const _TaglinePill();
 
-          // Tagline pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.location_on_rounded, color: Colors.white, size: 14),
-                SizedBox(width: 6),
-                Text(
-                  'Report civic issues in your area',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0x26FFFFFF),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.location_on_rounded, color: Colors.white, size: 14),
+          SizedBox(width: 6),
+          Text(
+            'Report civic issues in your area',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -303,81 +342,7 @@ class _HeroHeader extends StatelessWidget {
   }
 }
 
-// ── Report Action Card ───────────────────────────────────────────────────────
-
-class _ReportActionCard extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _ReportActionCard({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF16A34A), Color(0xFF15803D)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: AppColors.primaryShadow,
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(Icons.report_problem_rounded, color: Colors.white, size: 28),
-            ),
-            const SizedBox(width: 16),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Report an Issue',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Garbage, potholes, water leakage & more',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Info Card ────────────────────────────────────────────────────────────────
+// ── Info Card ─────────────────────────────────────────────────────────────────
 
 class _InfoCard extends StatelessWidget {
   final IconData icon;
@@ -400,7 +365,6 @@ class _InfoCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.outline),
-        boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,7 +373,12 @@ class _InfoCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
+              color: Color.fromRGBO(
+                iconColor.r.toInt(),
+                iconColor.g.toInt(),
+                iconColor.b.toInt(),
+                0.1,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: iconColor, size: 22),
