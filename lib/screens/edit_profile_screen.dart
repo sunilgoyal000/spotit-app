@@ -15,45 +15,141 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final user = FirebaseAuth.instance.currentUser;
-  final nameCtrl = TextEditingController();
-  File? image;
-  bool loading = false;
+  final _nameCtrl = TextEditingController();
+  File? _image;
+  bool _removePhoto = false;
+  bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    nameCtrl.text = user?.displayName ?? '';
+    _nameCtrl.text = user?.displayName ?? '';
   }
 
   @override
   void dispose() {
-    nameCtrl.dispose();
+    _nameCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (picked != null) setState(() => image = File(picked.path));
+  // ── Photo picker bottom sheet ─────────────────────────────────────────────
+
+  Future<void> _showPhotoPicker() async {
+    final hasExisting = (_image != null || user?.photoURL != null) && !_removePhoto;
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.outline,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Profile Photo',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _PhotoOption(
+                icon: Icons.photo_library_rounded,
+                label: 'Choose from Gallery',
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _pick(ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 8),
+              _PhotoOption(
+                icon: Icons.camera_alt_rounded,
+                label: 'Take a Photo',
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _pick(ImageSource.camera);
+                },
+              ),
+              if (hasExisting) ...[
+                const SizedBox(height: 8),
+                _PhotoOption(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Remove Photo',
+                  color: AppColors.error,
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _image = null;
+                      _removePhoto = true;
+                    });
+                  },
+                ),
+              ],
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
-  Future<void> saveProfile() async {
+  Future<void> _pick(ImageSource source) async {
+    final picked = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 85,
+    );
+    if (picked != null) {
+      setState(() {
+        _image = File(picked.path);
+        _removePhoto = false;
+      });
+    }
+  }
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+
+  Future<void> _saveProfile() async {
     if (user == null) return;
-    if (nameCtrl.text.trim().isEmpty) {
+    if (_nameCtrl.text.trim().isEmpty) {
       _showError('Please enter your name.');
       return;
     }
 
-    setState(() => loading = true);
+    setState(() => _loading = true);
     try {
       String? photoUrl;
-      if (image != null) {
-        final ref = FirebaseStorage.instance.ref().child('profile_photos/${user!.uid}.jpg');
-        await ref.putFile(image!);
+
+      if (_removePhoto) {
+        // Delete from Storage and clear URL
+        try {
+          await FirebaseStorage.instance
+              .ref()
+              .child('profile_photos/${user!.uid}.jpg')
+              .delete();
+        } catch (_) {}
+        await user!.updatePhotoURL(null);
+      } else if (_image != null) {
+        final ref = FirebaseStorage.instance
+            .ref()
+            .child('profile_photos/${user!.uid}.jpg');
+        await ref.putFile(_image!);
         photoUrl = await ref.getDownloadURL();
+        await user!.updatePhotoURL(photoUrl);
       }
 
-      await user!.updateDisplayName(nameCtrl.text.trim());
-      if (photoUrl != null) await user!.updatePhotoURL(photoUrl);
+      await user!.updateDisplayName(_nameCtrl.text.trim());
       await user!.reload();
 
       if (!mounted) return;
@@ -65,7 +161,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!mounted) return;
       _showError('Failed to update profile. Try again.');
     }
-    setState(() => loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
   void _showError(String msg) {
@@ -74,9 +170,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final hasPhoto = image != null || user?.photoURL != null;
+    final showInitial = _image == null &&
+        (user?.photoURL == null || _removePhoto);
+
+    ImageProvider? bgImage;
+    if (_image != null) {
+      bgImage = FileImage(_image!);
+    } else if (user?.photoURL != null && !_removePhoto) {
+      bgImage = NetworkImage(user!.photoURL!);
+    }
+
+    final initials = () {
+      if (user?.displayName?.isNotEmpty == true) {
+        final p = user!.displayName!.trim().split(' ');
+        return p.length >= 2
+            ? '${p[0][0]}${p[1][0]}'.toUpperCase()
+            : p[0][0].toUpperCase();
+      }
+      return (user?.email ?? 'U')[0].toUpperCase();
+    }();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -91,30 +207,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             const SizedBox(height: 16),
 
-            // ── Avatar picker ───────────────────────────────────────────
+            // ── Avatar picker ──────────────────────────────────────────────
             Center(
-              child: Stack(
-                children: [
-                  GestureDetector(
-                    onTap: pickImage,
-                    child: Container(
-                      width: 100,
-                      height: 100,
+              child: GestureDetector(
+                onTap: _showPhotoPicker,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 104,
+                      height: 104,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: AppColors.primary, width: 2.5),
-                        boxShadow: AppColors.cardShadow,
                         color: AppColors.primaryContainer,
-                        image: image != null
-                            ? DecorationImage(image: FileImage(image!), fit: BoxFit.cover)
-                            : (user?.photoURL != null
-                                ? DecorationImage(image: NetworkImage(user!.photoURL!), fit: BoxFit.cover)
-                                : null),
+                        image: bgImage != null
+                            ? DecorationImage(image: bgImage, fit: BoxFit.cover)
+                            : null,
                       ),
-                      child: !hasPhoto
+                      child: showInitial
                           ? Center(
                               child: Text(
-                                (user?.email ?? 'U')[0].toUpperCase(),
+                                initials,
                                 style: const TextStyle(
                                   fontSize: 36,
                                   fontWeight: FontWeight.w700,
@@ -124,37 +237,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             )
                           : null,
                     ),
-                  ),
-                  // Edit badge
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.background, width: 2),
+                    // Camera badge
+                    Positioned(
+                      bottom: 2,
+                      right: 2,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: AppColors.background, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.white,
+                          size: 15,
+                        ),
                       ),
-                      child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
             const SizedBox(height: 8),
             TextButton(
-              onPressed: pickImage,
+              onPressed: _showPhotoPicker,
               child: const Text('Change Photo'),
             ),
 
             const SizedBox(height: 24),
 
-            // ── Name field ───────────────────────────────────────────────
+            // ── Name field ─────────────────────────────────────────────────
             TextField(
-              controller: nameCtrl,
+              controller: _nameCtrl,
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Display Name',
@@ -174,7 +292,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.email_outlined, color: AppColors.onSurfaceMuted, size: 20),
+                  const Icon(Icons.email_outlined,
+                      color: AppColors.onSurfaceMuted, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -182,35 +301,95 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       children: [
                         const Text(
                           'Email address',
-                          style: TextStyle(fontSize: 11, color: AppColors.onSurfaceMuted, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.onSurfaceMuted,
+                              fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           user?.email ?? '',
-                          style: const TextStyle(fontSize: 14, color: AppColors.onSurface),
+                          style: const TextStyle(
+                              fontSize: 14, color: AppColors.onSurface),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.lock_outline_rounded, color: AppColors.onSurfaceMuted, size: 16),
+                  const Icon(Icons.lock_outline_rounded,
+                      color: AppColors.onSurfaceMuted, size: 16),
                 ],
               ),
             ),
 
             const SizedBox(height: 40),
 
-            // ── Save button ───────────────────────────────────────────────
+            // ── Save button ────────────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: loading ? null : saveProfile,
-                child: loading
+                onPressed: _loading ? null : _saveProfile,
+                child: _loading
                     ? const SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: Colors.white),
                       )
                     : const Text('Save Changes'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Bottom sheet option row ────────────────────────────────────────────────────
+
+class _PhotoOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+
+  const _PhotoOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = AppColors.onSurface,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Color.fromRGBO(
+                    color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 19),
+            ),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: color,
               ),
             ),
           ],

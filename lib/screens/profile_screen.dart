@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firestore_service.dart';
 import '../theme/colors.dart';
 import 'edit_profile_screen.dart';
+import 'about_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -92,19 +94,26 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(height: 8),
                   _SettingsCard(
                     children: [
-                      const _SettingsTile(
+                      _SettingsTile(
                         icon: Icons.info_outline_rounded,
                         iconColor: AppColors.onSurfaceVariant,
                         title: 'About SpotIt',
                         subtitle: 'Version 1.0.0',
-                        showChevron: false,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AboutScreen()),
+                        ),
                       ),
                       const Divider(height: 1, indent: 56),
-                      const _SettingsTile(
+                      _SettingsTile(
                         icon: Icons.privacy_tip_outlined,
                         iconColor: AppColors.onSurfaceVariant,
                         title: 'Privacy Policy',
                         subtitle: 'How we handle your data',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                        ),
                       ),
                     ],
                   ),
