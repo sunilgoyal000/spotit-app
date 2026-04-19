@@ -32,17 +32,10 @@ class AuthRepository {
   }
 
   Future<UserCredential> signInWithGoogle() async {
-    final googleUser = await GoogleSignIn().signIn();
-    if (googleUser == null) {
-      throw Exception("Google sign-in cancelled");
-    }
+    final googleUser = await GoogleSignIn.instance.authenticate();
+    final idToken = googleUser.authentication.idToken;
 
-    final googleAuth = await googleUser.authentication;
-
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
 
     final userCredential = await _auth.signInWithCredential(credential);
     await _userRepository.saveUser(userCredential.user!);
@@ -52,6 +45,6 @@ class AuthRepository {
 
   Future<void> signOut() async {
     await _auth.signOut();
-    await GoogleSignIn().signOut();
+    await GoogleSignIn.instance.signOut();
   }
 }

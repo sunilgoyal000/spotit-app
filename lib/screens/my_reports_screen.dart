@@ -44,7 +44,6 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -132,6 +131,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                             status: data['status'] ?? 'pending',
                             imageUrl: data['imageUrl'],
                             categoryColor: categoryColor,
+                            createdAt: data['createdAt'],
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(

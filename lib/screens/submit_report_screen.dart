@@ -7,8 +7,8 @@ import 'package:location/location.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../components/category_chip.dart';
 import '../controllers/report_controller.dart';
+import '../theme/colors.dart';
 
 class SubmitReportScreen extends ConsumerStatefulWidget {
   const SubmitReportScreen({super.key});
@@ -18,7 +18,7 @@ class SubmitReportScreen extends ConsumerStatefulWidget {
 }
 
 class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
-  final ImagePicker _picker = ImagePicker();
+  final _picker = ImagePicker();
   final PageController _pageController = PageController();
   final descriptionController = TextEditingController();
   final nameController = TextEditingController();
@@ -132,7 +132,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
   }
 
   Future<void> pickImage(ImageSource source) async {
-    final picked = await ImagePicker().pickImage(source: source);
+    final picked = await _picker.pickImage(source: source);
     if (picked != null) {
       setState(() => image = File(picked.path));
     }
@@ -640,7 +640,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: _selectedDistrict,
+          initialValue: _selectedDistrict,
           decoration: const InputDecoration(
             labelText: "District *",
           ),

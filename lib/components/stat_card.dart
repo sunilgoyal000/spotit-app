@@ -18,44 +18,44 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.outline),
-        boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: Color.fromRGBO(
+                  color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
+              borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             value.toString(),
             style: TextStyle(
-              fontSize: 26,
+              fontSize: 28,
               fontWeight: FontWeight.w800,
               color: color,
               height: 1.0,
-              letterSpacing: -0.5,
+              letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
-            title,
+            title.toUpperCase(),
             style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
+              fontSize: 10,
+              color: AppColors.onSurfaceMuted,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
             ),
             textAlign: TextAlign.center,
           ),

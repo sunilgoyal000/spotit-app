@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/colors.dart';
 
-/// Wrapped in RepaintBoundary so the GPU layer is cached.
-/// No BoxShadow — shadows on ListView items force a repaint on every scroll frame.
 class ReportCard extends StatelessWidget {
   final String category;
   final String location;
@@ -11,6 +10,7 @@ class ReportCard extends StatelessWidget {
   final String? imageUrl;
   final VoidCallback? onTap;
   final Color categoryColor;
+  final Timestamp? createdAt;
 
   const ReportCard({
     super.key,
@@ -18,103 +18,126 @@ class ReportCard extends StatelessWidget {
     required this.location,
     required this.description,
     required this.status,
+    required this.categoryColor,
     this.imageUrl,
     this.onTap,
-    required this.categoryColor,
+    this.createdAt,
   });
 
-  IconData get _categoryIcon {
-    return switch (category.toLowerCase()) {
-      'garbage' => Icons.delete_outline_rounded,
-      'pothole' => Icons.construction_rounded,
-      'water leakage' => Icons.water_drop_outlined,
-      'streetlight' => Icons.lightbulb_outline_rounded,
-      _ => Icons.report_problem_outlined,
-    };
+  IconData get _icon => switch (category.toLowerCase()) {
+        'garbage' => Icons.delete_outline_rounded,
+        'pothole' => Icons.construction_rounded,
+        'water leakage' => Icons.water_drop_outlined,
+        'streetlight' => Icons.lightbulb_outline_rounded,
+        _ => Icons.report_problem_outlined,
+      };
+
+  String _timeAgo() {
+    if (createdAt == null) return '';
+    final diff = DateTime.now().difference(createdAt!.toDate());
+    if (diff.inDays >= 30) return '${(diff.inDays / 30).floor()}mo ago';
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+    return 'Just now';
   }
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Material(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             onTap: onTap,
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.outline),
               ),
-              padding: const EdgeInsets.all(14),
-              child: Row(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Thumbnail / Icon ──────────────────────────────────
+                  // ── Image / Banner ─────────────────────────────────────────
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20)),
                     child: imageUrl != null
                         ? Image.network(
                             imageUrl!,
-                            width: 64,
-                            height: 64,
+                            height: 168,
+                            width: double.infinity,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
-                                _IconBox(color: categoryColor, icon: _categoryIcon),
+                                _Banner(color: categoryColor, icon: _icon),
                           )
-                        : _IconBox(color: categoryColor, icon: _categoryIcon),
+                        : _Banner(color: categoryColor, icon: _icon),
                   ),
 
-                  const SizedBox(width: 12),
-
-                  // ── Content ──────────────────────────────────────────
-                  Expanded(
+                  // ── Content ────────────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Category + Status
                         Row(
                           children: [
-                            _CategoryTag(label: category, color: categoryColor),
+                            _CategoryPill(
+                                label: category, color: categoryColor),
                             const Spacer(),
-                            _StatusBadge(status: status),
+                            _StatusDot(status: status),
                           ],
                         ),
-                        const SizedBox(height: 7),
+
+                        const SizedBox(height: 8),
+
+                        // Description
+                        Text(
+                          description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.onSurface,
+                            height: 1.45,
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Footer: location + time
                         Row(
                           children: [
-                            const Icon(
-                              Icons.location_on_rounded,
-                              size: 12,
-                              color: AppColors.onSurfaceMuted,
-                            ),
+                            const Icon(Icons.location_on_rounded,
+                                size: 13, color: AppColors.onSurfaceMuted),
                             const SizedBox(width: 3),
                             Expanded(
                               child: Text(
                                 location,
                                 style: const TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.onSurfaceVariant,
+                                  color: AppColors.onSurfaceMuted,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            if (createdAt != null)
+                              Text(
+                                _timeAgo(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.onSurfaceMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                           ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          description,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.onSurface,
-                            height: 1.4,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -129,53 +152,66 @@ class ReportCard extends StatelessWidget {
   }
 }
 
-class _IconBox extends StatelessWidget {
+// ── Banner placeholder ────────────────────────────────────────────────────────
+
+class _Banner extends StatelessWidget {
   final Color color;
   final IconData icon;
-
-  const _IconBox({required this.color, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 64,
-      height: 64,
-      child: ColoredBox(
-        color: Color.fromRGBO(
-          color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
-        child: Icon(icon, color: color, size: 26),
-      ),
-    );
-  }
-}
-
-class _CategoryTag extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _CategoryTag({required this.label, required this.color});
+  const _Banner({required this.color, required this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Color.fromRGBO(
-          color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+      height: 88,
+      width: double.infinity,
+      color: Color.fromRGBO(
+          color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.06),
+      child: Center(
+        child: Icon(
+          icon,
+          size: 42,
+          color: Color.fromRGBO(
+              color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.35),
+        ),
       ),
     );
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  final String status;
+// ── Category pill ─────────────────────────────────────────────────────────────
 
-  const _StatusBadge({required this.status});
+class _CategoryPill extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _CategoryPill({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Color.fromRGBO(
+            color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Status dot + label ────────────────────────────────────────────────────────
+
+class _StatusDot extends StatelessWidget {
+  final String status;
+  const _StatusDot({required this.status});
 
   Color get _color => switch (status) {
         'resolved' => AppColors.success,
@@ -193,22 +229,24 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = _color;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: Color.fromRGBO(c.r.toInt(), c.g.toInt(), c.b.toInt(), 0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        _label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: c,
-          letterSpacing: 0.2,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: _color, shape: BoxShape.circle),
         ),
-      ),
+        const SizedBox(width: 5),
+        Text(
+          _label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: _color,
+          ),
+        ),
+      ],
     );
   }
 }
