@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/firestore_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../repositories/report_repository.dart';
+import '../controllers/auth_controller.dart';
 import '../theme/colors.dart';
 import 'edit_profile_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
@@ -17,8 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool get wantKeepAlive => true;
 
   @override
-  Widget build(BuildContext context) {
-    super.build(context);
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -50,10 +51,32 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
 
-            // ── Stats — isolated StreamBuilder
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-              child: _ProfileStats(uid: user.uid),
+          // ── Stats Row ─────────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Builder(
+              builder: (context) {
+                final statsAsync = ref.watch(reportStatsProvider(user.uid));
+                final stats = statsAsync.value ?? {'total': 0, 'pending': 0, 'resolved': 0};
+                return Container(
+                  margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.outline),
+                    boxShadow: AppColors.cardShadow,
+                  ),
+                  child: Row(
+                    children: [
+                      _StatItem(label: 'Total', value: stats['total']!),
+                      _VerticalDivider(),
+                      _StatItem(label: 'Pending', value: stats['pending']!),
+                      _VerticalDivider(),
+                      _StatItem(label: 'Resolved', value: stats['resolved']!),
+                    ],
+                  ),
+                );
+              },
             ),
 
             // ── Settings Sections ─────────────────────────────────────────
@@ -126,7 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         backgroundColor: AppColors.errorContainer,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      onPressed: () => _confirmLogout(context),
+                      onPressed: () => _confirmLogout(context, ref),
                     ),
                   ),
                   const SizedBox(height: 36),
@@ -139,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -164,7 +187,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         ],
       ),
     );
-    if (confirmed == true) await FirebaseAuth.instance.signOut();
+    if (confirmed == true) {
+      await ref.read(authControllerProvider.notifier).logout();
+    }
   }
 }
 

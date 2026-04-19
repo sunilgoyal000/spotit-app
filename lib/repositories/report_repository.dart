@@ -1,10 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class FirestoreService {
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+final reportRepositoryProvider = Provider((ref) => ReportRepository());
 
-  // 📝 Submit report
-  static Future<void> submitReport({
+final myReportsProvider = StreamProvider.autoDispose.family<QuerySnapshot, String>((ref, userId) {
+  final repo = ref.watch(reportRepositoryProvider);
+  return repo.myReports(userId);
+});
+
+final reportStatsProvider = StreamProvider.autoDispose.family<Map<String, int>, String>((ref, userId) {
+  final repo = ref.watch(reportRepositoryProvider);
+  return repo.reportStats(userId);
+});
+
+class ReportRepository {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  Future<void> submitReport({
     required String userId,
     required String name,
     required String phone,
@@ -34,8 +46,7 @@ class FirestoreService {
     });
   }
 
-  // 📂 Fetch current user's reports
-  static Stream<QuerySnapshot> myReports(String userId) {
+  Stream<QuerySnapshot> myReports(String userId) {
     return _db
         .collection('reports')
         .where('userId', isEqualTo: userId)
@@ -43,8 +54,7 @@ class FirestoreService {
         .snapshots();
   }
 
-  // 📊 Dashboard stats (Total / Pending / Resolved)
-  static Stream<Map<String, int>> reportStats(String userId) {
+  Stream<Map<String, int>> reportStats(String userId) {
     return _db
         .collection('reports')
         .where('userId', isEqualTo: userId)

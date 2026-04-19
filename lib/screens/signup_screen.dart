@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../services/user_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../controllers/auth_controller.dart';
 import '../theme/colors.dart';
 
-class SignupScreen extends StatefulWidget {
+class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
 
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupScreenState extends ConsumerState<SignupScreen> {
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
-  bool loading = false;
   bool obscure = true;
 
   @override
@@ -28,20 +27,20 @@ class _SignupScreenState extends State<SignupScreen> {
       _showError('Please fill in all fields.');
       return;
     }
-    setState(() => loading = true);
-    try {
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailCtrl.text.trim(),
-        password: passCtrl.text.trim(),
-      );
-      await UserService.saveUser(credential.user!);
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
+
+    await ref.read(authControllerProvider.notifier).signup(
+      emailCtrl.text.trim(),
+      passCtrl.text.trim(),
+    );
+
+    final state = ref.read(authControllerProvider);
+    if (state.hasError) {
       if (!mounted) return;
-      _showError(_friendlyError(e.toString()));
+      _showError(_friendlyError(state.error.toString()));
+    } else {
+      if (!mounted) return;
+      Navigator.pop(context);
     }
-    if (!mounted) return;
-    setState(() => loading = false);
   }
 
   String _friendlyError(String raw) {
@@ -60,6 +59,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loading = ref.watch(authControllerProvider).isLoading;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
