@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/firestore_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../repositories/report_repository.dart';
+import '../controllers/auth_controller.dart';
 import '../theme/colors.dart';
 import 'edit_profile_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   String _initials(User user) {
@@ -20,7 +22,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -43,10 +45,10 @@ class ProfileScreen extends StatelessWidget {
 
           // ── Stats Row ─────────────────────────────────────────────────
           SliverToBoxAdapter(
-            child: StreamBuilder<Map<String, int>>(
-              stream: FirestoreService.reportStats(user.uid),
-              builder: (context, snapshot) {
-                final stats = snapshot.data ?? {'total': 0, 'pending': 0, 'resolved': 0};
+            child: Builder(
+              builder: (context) {
+                final statsAsync = ref.watch(reportStatsProvider(user.uid));
+                final stats = statsAsync.value ?? {'total': 0, 'pending': 0, 'resolved': 0};
                 return Container(
                   margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -143,7 +145,7 @@ class ProfileScreen extends StatelessWidget {
                         backgroundColor: AppColors.errorContainer,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      onPressed: () => _confirmLogout(context),
+                      onPressed: () => _confirmLogout(context, ref),
                     ),
                   ),
 
@@ -157,7 +159,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -181,7 +183,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
     if (confirmed == true) {
-      await FirebaseAuth.instance.signOut();
+      await ref.read(authControllerProvider.notifier).logout();
     }
   }
 }

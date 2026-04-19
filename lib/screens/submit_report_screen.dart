@@ -5,19 +5,19 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:location/location.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../components/category_chip.dart';
-import '../services/firestore_service.dart';
-import '../services/storage_service.dart';
+import '../controllers/report_controller.dart';
 
-class SubmitReportScreen extends StatefulWidget {
+class SubmitReportScreen extends ConsumerStatefulWidget {
   const SubmitReportScreen({super.key});
 
   @override
-  State<SubmitReportScreen> createState() => _SubmitReportScreenState();
+  ConsumerState<SubmitReportScreen> createState() => _SubmitReportScreenState();
 }
 
-class _SubmitReportScreenState extends State<SubmitReportScreen> {
+class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
   final ImagePicker _picker = ImagePicker();
   final PageController _pageController = PageController();
   final descriptionController = TextEditingController();
@@ -225,47 +225,39 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
       return;
     }
 
-    setState(() => isSubmitting = true);
+    final locParts = locationText!.split(', ');
+    final lat = double.tryParse(locParts[0]) ?? 0.0;
+    final lng = double.tryParse(locParts.length > 1 ? locParts[1] : '0') ?? 0.0;
 
-    try {
-      String? imageUrl;
-      if (image != null) {
-        imageUrl = await StorageService.uploadImage(image!);
-      }
+    await ref.read(reportControllerProvider.notifier).submitReport(
+          userId: user.uid,
+          name: _trimmedName,
+          phone: phoneController.text.trim(),
+          sharePhone: sharePhone,
+          category: category,
+          description: _trimmedDescription,
+          location: locationText!,
+          lat: lat,
+          lng: lng,
+          district: _selectedDistrict ?? 'Mohali',
+          image: image,
+        );
 
-      final locParts = locationText!.split(', ');
-      final lat = double.tryParse(locParts[0]) ?? 0.0;
-      final lng =
-          double.tryParse(locParts.length > 1 ? locParts[1] : '0') ?? 0.0;
+    final state = ref.read(reportControllerProvider);
 
-      await FirestoreService.submitReport(
-        userId: user.uid,
-        name: _trimmedName,
-        phone: phoneController.text.trim(),
-        sharePhone: sharePhone,
-        category: category,
-        description: _trimmedDescription,
-        location: locationText!,
-        lat: lat,
-        lng: lng,
-        district: _selectedDistrict ?? 'Mohali',
-        imageUrl: imageUrl,
-      );
-
+    if (state.hasError) {
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Report submitted successfully!")),
-      );
-
-      Navigator.pop(context);
-    } catch (e) {
       _showMessage("Failed to submit report. Please try again.");
-    } finally {
-      if (mounted) {
-        setState(() => isSubmitting = false);
-      }
+      return;
     }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("✅ Report submitted successfully!")),
+    );
+
+    Navigator.pop(context);
   }
 
   void _showMessage(String message) {
@@ -590,6 +582,8 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
   }
 
   Widget _bottomBar() {
+    final isSubmitting = ref.watch(reportControllerProvider).isLoading;
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,

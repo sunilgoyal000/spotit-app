@@ -2,20 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../components/report_card.dart';
-import '../services/firestore_service.dart';
+import '../repositories/report_repository.dart';
 import '../theme/colors.dart';
 import 'report_details_screen.dart';
 
-class MyReportsScreen extends StatefulWidget {
+class MyReportsScreen extends ConsumerStatefulWidget {
   const MyReportsScreen({super.key});
 
   @override
-  State<MyReportsScreen> createState() => _MyReportsScreenState();
+  ConsumerState<MyReportsScreen> createState() => _MyReportsScreenState();
 }
 
-class _MyReportsScreenState extends State<MyReportsScreen> {
+class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
   String _filter = 'All';
 
   static const _filters = ['All', 'Pending', 'In Progress', 'Resolved'];
@@ -96,54 +97,51 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
 
           // ── List ───────────────────────────────────────────────────────
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirestoreService.myReports(user.uid),
-              builder: (context, snapshot) {
-                // Loading shimmer
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _ShimmerList();
-                }
+            child: Builder(
+              builder: (context) {
+                final reportsAsync = ref.watch(myReportsProvider(user.uid));
 
-                // Error state
-                if (snapshot.hasError) {
-                  return _ErrorState();
-                }
+                return reportsAsync.when(
+                  loading: () => _ShimmerList(),
+                  error: (_, __) => _ErrorState(onRetry: () => ref.invalidate(myReportsProvider(user.uid))),
+                  data: (snapshot) {
+                    final all = snapshot.docs;
+                    final reports = _applyFilter(all);
 
-                final all = snapshot.data?.docs ?? [];
-                final reports = _applyFilter(all);
+                    // Empty state
+                    if (reports.isEmpty) {
+                      return _EmptyState(filter: _filter, allCount: all.length);
+                    }
 
-                // Empty state
-                if (reports.isEmpty) {
-                  return _EmptyState(filter: _filter, allCount: all.length);
-                }
+                    return RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () => Future.value(),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        itemCount: reports.length,
+                        itemBuilder: (context, index) {
+                          final doc = reports[index];
+                          final data = doc.data() as Map<String, dynamic>;
+                          final categoryColor = _getCategoryColor(data['category']);
 
-                return RefreshIndicator(
-                  color: AppColors.primary,
-                  onRefresh: () => Future.value(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    itemCount: reports.length,
-                    itemBuilder: (context, index) {
-                      final doc = reports[index];
-                      final data = doc.data() as Map<String, dynamic>;
-                      final categoryColor = _getCategoryColor(data['category']);
-
-                      return ReportCard(
-                        category: data['category'] ?? 'Unknown',
-                        location: data['location'] ?? 'No location',
-                        description: data['description'] ?? 'No description',
-                        status: data['status'] ?? 'pending',
-                        imageUrl: data['imageUrl'],
-                        categoryColor: categoryColor,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ReportDetailsScreen(report: doc),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          return ReportCard(
+                            category: data['category'] ?? 'Unknown',
+                            location: data['location'] ?? 'No location',
+                            description: data['description'] ?? 'No description',
+                            status: data['status'] ?? 'pending',
+                            imageUrl: data['imageUrl'],
+                            categoryColor: categoryColor,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ReportDetailsScreen(report: doc),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -181,6 +179,10 @@ class _ShimmerList extends StatelessWidget {
 // ── Error State ───────────────────────────────────────────────────────────────
 
 class _ErrorState extends StatelessWidget {
+  final VoidCallback? onRetry;
+
+  const _ErrorState({this.onRetry});
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -209,6 +211,14 @@ class _ErrorState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
             ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 24),
+              TextButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Retry'),
+              ),
+            ],
           ],
         ),
       ),

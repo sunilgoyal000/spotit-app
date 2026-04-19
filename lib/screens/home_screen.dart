@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/firestore_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../repositories/report_repository.dart';
 import '../components/stat_card.dart';
 import '../theme/colors.dart';
 import 'submit_report_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   String _greeting() {
@@ -28,7 +29,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
@@ -43,10 +44,10 @@ class HomeScreen extends StatelessWidget {
           // ── Stats ─────────────────────────────────────────────────────
           if (user != null)
             SliverToBoxAdapter(
-              child: StreamBuilder<Map<String, int>>(
-                stream: FirestoreService.reportStats(user.uid),
-                builder: (context, snapshot) {
-                  final stats = snapshot.data ?? {'total': 0, 'pending': 0, 'resolved': 0};
+              child: Builder(
+                builder: (context) {
+                  final statsAsync = ref.watch(reportStatsProvider(user.uid));
+                  final stats = statsAsync.value ?? {'total': 0, 'pending': 0, 'resolved': 0};
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                     child: Row(
