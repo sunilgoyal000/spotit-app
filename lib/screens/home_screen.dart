@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/firestore_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../repositories/report_repository.dart';
 import '../components/stat_card.dart';
 import '../theme/colors.dart';
 import 'submit_report_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  final VoidCallback? onProfileTap;
-  const HomeScreen({super.key, this.onProfileTap});
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -19,20 +19,60 @@ class _HomeScreenState extends State<HomeScreen>
   bool get wantKeepAlive => true;
 
   @override
-  Widget build(BuildContext context) {
-    super.build(context);
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        physics: const ClampingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Hero — RepaintBoundary prevents gradient repaints on scroll
-            RepaintBoundary(
-              child: _HeroHeader(user: user, onProfileTap: widget.onProfileTap),
+      body: CustomScrollView(
+        slivers: [
+          // ── Hero Header ────────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: _HeroHeader(user: user, greeting: _greeting(), initials: user != null ? _initials(user) : 'U'),
+          ),
+
+          // ── Stats ─────────────────────────────────────────────────────
+          if (user != null)
+            SliverToBoxAdapter(
+              child: Builder(
+                builder: (context) {
+                  final statsAsync = ref.watch(reportStatsProvider(user.uid));
+                  final stats = statsAsync.value ?? {'total': 0, 'pending': 0, 'resolved': 0};
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: StatCard(
+                            title: 'Total',
+                            value: stats['total']!,
+                            icon: Icons.assignment_rounded,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: StatCard(
+                            title: 'Pending',
+                            value: stats['pending']!,
+                            icon: Icons.hourglass_top_rounded,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: StatCard(
+                            title: 'Resolved',
+                            value: stats['resolved']!,
+                            icon: Icons.check_circle_rounded,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
 
             const SizedBox(height: 20),

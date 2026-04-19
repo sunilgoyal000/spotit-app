@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'signup_screen.dart';
-import '../services/google_auth_service.dart';
-import '../services/user_service.dart';
+import '../controllers/auth_controller.dart';
 import '../theme/colors.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
-  bool loading = false;
   bool showPassword = false;
 
   @override
@@ -26,19 +24,16 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> login() async {
-    setState(() => loading = true);
-    try {
-      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailCtrl.text.trim(),
-        password: passCtrl.text.trim(),
-      );
-      await UserService.saveUser(credential.user!);
-    } catch (e) {
+    await ref.read(authControllerProvider.notifier).login(
+      emailCtrl.text.trim(),
+      passCtrl.text.trim(),
+    );
+
+    final state = ref.read(authControllerProvider);
+    if (state.hasError) {
       if (!mounted) return;
-      _showError(_friendlyError(e.toString()));
+      _showError(_friendlyError(state.error.toString()));
     }
-    if (!mounted) return;
-    setState(() => loading = false);
   }
 
   Future<void> resetPassword() async {
@@ -46,13 +41,16 @@ class _LoginScreenState extends State<LoginScreen> {
       _showError('Enter your email above to reset your password.');
       return;
     }
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: emailCtrl.text.trim());
+
+    await ref.read(authControllerProvider.notifier).resetPassword(emailCtrl.text.trim());
+
+    final state = ref.read(authControllerProvider);
+    if (state.hasError) {
+      if (!mounted) return;
+      _showError(_friendlyError(state.error.toString()));
+    } else {
       if (!mounted) return;
       _showSuccess('Reset link sent — check your inbox.');
-    } catch (e) {
-      if (!mounted) return;
-      _showError(_friendlyError(e.toString()));
     }
   }
 
@@ -78,6 +76,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loading = ref.watch(authControllerProvider).isLoading;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -224,9 +224,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () async {
-                    try {
-                      await GoogleAuthService.signInWithGoogle();
-                    } catch (e) {
+                    await ref.read(authControllerProvider.notifier).loginWithGoogle();
+                    final state = ref.read(authControllerProvider);
+                    if (state.hasError) {
                       if (!context.mounted) return;
                       _showError('Google sign-in failed. Try again.');
                     }
